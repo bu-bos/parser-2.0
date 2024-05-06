@@ -1,0 +1,20 @@
+import pandas as pd
+from tqdm import tqdm
+import numpy as np
+
+
+
+df = pd.read_excel('data.xlsx')
+dd = pd.read_excel('category.xlsx') 
+dff = pd.DataFrame(df)
+
+
+ds = dff.groupby('id категории продукта')['Цена со скидкой'].mean()
+ds=pd.DataFrame(ds)
+
+df_merged = pd.merge(
+    dd, ds,
+    left_on='id категории продукта',
+    right_on='id категории продукта'
+)
+print(df_merged)
