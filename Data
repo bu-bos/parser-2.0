@@ -3,12 +3,11 @@ import requests
 from bs4 import BeautifulSoup as BS
 from bs4 import BeautifulSoup
 import pandas as pd
-from tqdm import tqdm
-import xlsxwriter
 
 products = []
 categories = []
 id_category = 0
+id_prod = 0
 url_link = 'https://kenwood.ru'
 url = 'https://kenwood.ru/shop'
 response_url = requests.get(url).text
@@ -19,10 +18,7 @@ category_items_url = soup_url.find_all(class_='shop-cart')
 for item in category_items_url:   
     id_category = id_category + 1                                                           # Получаем название категрии товаров
     title_category = item.find(class_='shop-cart__title').text
-    #print('\n' +'Вкладка: ' + title.strip())
-    link_category = url_link + item['href']
-    #print(link_category + '/n')                                                            # Получем ссылку категории
-
+    link_category = url_link + item['href']                                                 # Получем ссылку категории
 
     for i in range(1, 10):                                                                  #Чекаем каждую станицу раздела link_category
         url = link_category + '/' + str(i)
@@ -36,33 +32,26 @@ for item in category_items_url:
                 title = item.find(class_='card-item__display-title').text                   # Наименование товара
                 full_title = item.find(class_='card-item__title').text                      # Полное наименование товара
                 link_product = url_link + item.select_one('.card-item > a')['href']         # Ссылка на товар
-                #print(link_product)
-                #print('Наименование: ' + title.strip() + '\n' +
-              #  'Полное наименование: ' + full_title.strip())
+                id_prod = id_prod + 1
                 
                 if item.find(class_='prev') != None:                                        # Если есть 2 цены выводим по отдельности 
                     full_cost = item.find(class_='prev').text
                     full_cost = ''.join(full_cost.split())
-                 #   print('Полная стоимость: ' + full_cost[:-1] + ' Руб')
                     lower_price = item.find(class_='curr').text
                     lower_price = ''.join(lower_price.split())
-                 #   print('Сниженная стоимость: ' + lower_price[:-1] + ' Руб')
 
                 else:                                                                       # Иначе выводим одну цену
                     full_cost = item.find(class_='curr').text
                     full_cost = ''.join(full_cost.split())
                     lower_price = full_cost
-                 #   print('Полная стоимость: ' + full_cost[:-1] + ' Руб')
 
 
                 if item.find(class_='label label-orange') != None:                          # Если есть дополнительная информация в карточке
                     additional = item.find(class_='label label-orange').text
                     if additional == 'Хит продаж':
                         additional = 'Хит продаж'
-                    #    print(additional)
                     elif additional == 'New': 
                         additional = 'Новинка'
-                    #    print(additional)
                     else:
                         pass                                                                # Иначе пропускаем условие
                 else:
@@ -73,10 +62,8 @@ for item in category_items_url:
                     percent = item.find(class_='label label-purple').text
                     if percent == 'Предзаказ':
                         sale = 'Предзаказ'
-                        #print('Только по предзаказу')
                     else: 
                         sale = percent
-                        #print('Cкидка ' + percent.strip())
                 else:
                     sale = 'В ниличии'
 
@@ -85,37 +72,36 @@ for item in category_items_url:
                     not_available = item.find(class_='not-available').text               
                     if not_available == 'Нет в наличии':
                         not_available == 'Нет в наличии'
-                        #print('Нет в наличии' + '\n')
                 else:
-                    not_available = 'В наличии'
-                    #print('В наличии' + '\n')                                              # Иначе в наличии
+                    not_available = 'В наличии'                                              # Иначе в наличии
+
+                product = pd.DataFrame([{
+                'id' : id_prod,
+                'product_name' : full_title.strip(),
+                'full_cost' : full_cost[:-1],
+                'lower_price' : lower_price[:-1],
+                'pre_order_sale' : sale,
+                'id_category' : id_category,
+                'category_name' : title_category.strip(),
+                'additional' : additional,
+                'availability' : not_available,
+                'product_link' : link_product 
+                }])
+                products.append(product)
+
             else:
                 pass
-
-            product = pd.DataFrame([{
-            'Полное наименование' : full_title.strip(),
-            'Цена без скидки' : full_cost[:-1],
-            'Цена со скидкой' : lower_price[:-1],
-            'Предзаказ\скидка' : sale,
-            'id категории продукта' : id_category,
-            'Название категории продукта' : title_category.strip(),
-            'Дополнительная информация' : additional,
-            'Есть ли в наличии' : not_available,
-            'Ссылка на товар' : link_product 
-            }])
-            products.append(product)
 
 
 
     category = pd.DataFrame([{
-    'id категории продукта' : id_category,
-    'Наименование категории продукта' : title_category.strip()
+    'id_category' : id_category,
+    'category_name' : title_category.strip()
     }])
     categories.append(category)
 
 final_data = pd.concat(products)
-final_data.index.rename('id продукта', inplace= True )
-final_data.to_excel('data.xlsx', index=False)                                    #Первая табличка
+final_data.to_csv('data.csv', encoding='utf-8', index=False)                                    #Первая табличка
 
 final_categories = pd.concat(categories)
-final_categories.to_excel('category.xlsx', index= False)                         #Вторая табличка
+final_categories.to_csv('category.csv', encoding='utf-8', index= False)                         #Вторая табличка
