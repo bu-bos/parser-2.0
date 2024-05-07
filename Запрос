@@ -1,20 +1,14 @@
-import pandas as pd
-from tqdm import tqdm
-import numpy as np
+1. Для каждого типа продукта вычислить среднюю цену типа продукта
+SELECT id_category, AVG(lower_price) AS avg_lover_price 
+FROM data_products 
+GROUP BY id_category
+ORDER BY id_category;
 
 
 
-df = pd.read_excel('data.xlsx')
-dd = pd.read_excel('category.xlsx') 
-dff = pd.DataFrame(df)
-
-
-ds = dff.groupby('id категории продукта')['Цена со скидкой'].mean()
-ds=pd.DataFrame(ds)
-
-df_merged = pd.merge(
-    dd, ds,
-    left_on='id категории продукта',
-    right_on='id категории продукта'
-)
-print(df_merged)
+2. Для каждого продукта вычислить разницу между средним значением в данной категории продукта
+SELECT p.id, (p.lower_price - c.avg_price) AS price_difference 
+FROM data_products p 
+JOIN ( SELECT id_category, AVG(lower_price) AS avg_price 
+FROM data_products 
+GROUP BY id_category ) c ON p.id_category = c.id_category;
